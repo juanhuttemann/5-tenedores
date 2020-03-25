@@ -1,0 +1,36 @@
+{
+  "expo": {
+    "name": "tenedores5",
+    "slug": "tenedores5",
+    "privacy": "public",
+    "sdkVersion": "36.0.0",
+    "platforms": [
+      "android",
+      "web"
+    ],
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "updates": {
+      "fallbackToCacheTimeout": 0
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "permissions":["CAMERA_ROLL", "LOCATION"],
+      "package": "com.yourcompany.yourappname"
+    },
+    "entryPoint": "node_modules/expo/AppEntry.js"
+  },
+  "displayName": "tenedores5",
+  "name": "tenedores5"
+}
