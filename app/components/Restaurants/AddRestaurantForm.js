@@ -1,46 +1,135 @@
 import React, { useState, useEffect } from 'react';
-import {StyleSheet, View, ScrollView, Alert, Dimensions } from 'react-native'
+import _ from "lodash";
+import {
+  StyleSheet,
+  View,
+  Alert,
+  Dimensions,
+  KeyboardAvoidingView,
+  YellowBox
+} from "react-native";
 import { Icon, Avatar, Image, Input, Button } from 'react-native-elements'
 import * as Permissions from 'expo-permissions'
 import * as ImagePicker from 'expo-image-picker'
 import MapView from 'react-native-maps'
 import * as Location from 'expo-location'
 import Modal from '../Modal'
+import uuid from "uuid-random";
+import InputScrollView from "react-native-input-scroll-view";
 
+import { firebaseApp } from '../../utils/firebase'
+import firebase from 'firebase/app'
+import "firebase/firestore"
+
+const dbh = firebase.firestore(firebaseApp);
 const widthScreen = Dimensions.get("window").width
 
+YellowBox.ignoreWarnings(["Setting a timer"]);
+const _console = _.clone(console);
+console.warn = message => {
+  if (message.indexOf("Setting a timer") <= -1) {
+    _console.warn(message);
+  }
+};
+
 const AddRestaurantForm = props => {
+  const { toastRef, navigation, setIsLoading } = props
   const [restaurantName, setRestaurantName] = useState("")
   const [restaurantAddress, setRestaurantAddress] = useState("")
   const [restaurantDescription, setRestaurantDescription] = useState("")
-  const { toastRef, navigation, setIsloading } = props
   const [imagesSelected, setImagesSelected] = useState([])
   const [isVisibleMap, setIsVisibleMap] = useState(false)
   const [locationRestaurant, setLocationRestaurant] = useState(null)
 
+  const addRestaurant = ()=> {
+    if (!restaurantName || !restaurantAddress || !restaurantDescription) {
+      toastRef.current.show("Todos los campos del formulario son obligatorios", 4000)
+    } else if(imagesSelected.length === 0){
+      toastRef.current.show("El restaurante tiene que tenes al menos una foto", 4000)
+    } else if(!locationRestaurant) {
+      toastRef.current.show("Tienes que localizar el restaurante en el mapa", 4000)
+    } else {
+      setIsLoading(true)
+      uploadImageStorage(imagesSelected).then(arrayImages => {
+        dbh
+          .collection("restaurants")
+          .add({
+            name: restaurantName,
+            address: restaurantAddress,
+            description: restaurantDescription,
+            location: locationRestaurant,
+            images: arrayImages,
+            rating: 0,
+            ratingTotal: 0,
+            quantityVoting: 0,
+            createAt: new Date(),
+            createBy: firebase.auth().currentUser.uid
+          })
+          .then(() => {
+            setIsLoading(false);
+            navigation.navigate("Restaurants");
+          })
+          .catch(error => {
+            setIsLoading(false);
+            toastRef.current.show(
+              "Error al subir el restaurante. Favor intentelo de nuevo más tarde."
+            );
+            console.log(error);
+          });
+      })
+    }
+  }
+
+  const uploadImageStorage = async imageArray =>{
+    const imagesBlob = []
+    await Promise.all(
+      imageArray.map(async image=>{
+        const response = await fetch(image)
+        const blob = await response.blob()
+        const ref = firebase
+          .storage()
+          .ref("restaurant-images")
+          .child(uuid());
+        await ref.put(blob).then(result => {
+          imagesBlob.push(result.metadata.name)
+        })
+      })
+    )
+    return imagesBlob
+  }
+
   return (
-    <ScrollView>
-      <ImageRestaurant 
-        imageRestaurant={imagesSelected[0]} />
-      <FormAdd 
+    <InputScrollView>
+      <ImageRestaurant imageRestaurant={imagesSelected[0]} />
+      <FormAdd
         setRestaurantName={setRestaurantName}
         setRestaurantAddress={setRestaurantAddress}
         setRestaurantDescription={setRestaurantDescription}
         setIsVisibleMap={setIsVisibleMap}
         locationRestaurant={locationRestaurant}
       />
+      <KeyboardAvoidingView
+        enabled 
+        behavior={"padding"}
+        keyboardVerticalOffset={90}
+      />
       <UploadImage
         imagesSelected={imagesSelected}
         setImagesSelected={setImagesSelected}
         toastRef={toastRef}
       />
-      <Map 
+      <Button
+        title="Crear Restaurante"
+        onPress={addRestaurant}
+        buttonStyle={styles.addRestaurantBtn}
+      />
+      <Map
         isVisibleMap={isVisibleMap}
         setIsVisibleMap={setIsVisibleMap}
         setLocationRestaurant={setLocationRestaurant}
         toastRef={toastRef}
       />
-    </ScrollView>
+    </InputScrollView>
   );
 }
 
@@ -139,30 +228,32 @@ const FormAdd = props => {
         locationRestaurant
       } = props
 
-  return <View style={styles.viewForm}>
-        <Input
-          placeholder="Nombre del Restaurante"
-          containerStyle={styles.input}
-          onChange={e => setRestaurantName(e.nativeEvent.text)}
-        />
-        <Input 
-          placeholder="Dirección"
-          containerStyle={styles.input}
-          rightIcon={{
-            type:"material-community",
-            name:"google-maps",
-            color: locationRestaurant ? "#00a680" : "#c2c2c2",
-            onPress: ()=> setIsVisibleMap(true)
-          }}
-          onChange={e => setRestaurantAddress(e.nativeEvent.text)}
-        />
-        <Input 
-          placeholder="Descripción del Restaurante"
-          multiline
-          inputContainerStyle={styles.textArea}
-          onChange={e=>setRestaurantDescription(e.nativeEvent.text)}
-        />
-      </View>
+  return (
+    <View style={styles.viewForm}>
+      <Input
+        placeholder="Nombre del Restaurante"
+        containerStyle={styles.input}
+        onChange={e => setRestaurantName(e.nativeEvent.text)}
+      />
+      <Input
+        placeholder="Dirección"
+        containerStyle={styles.input}
+        rightIcon={{
+          type: "material-community",
+          name: "google-maps",
+          color: locationRestaurant ? "#00a680" : "#c2c2c2",
+          onPress: () => setIsVisibleMap(true)
+        }}
+        onChange={e => setRestaurantAddress(e.nativeEvent.text)}
+      />
+      <Input
+        placeholder="Descripción del Restaurante"
+        multiline
+        inputContainerStyle={styles.textArea}
+        onChange={e => setRestaurantDescription(e.nativeEvent.text)}
+      />
+    </View>
+  );
 }
 
 const Map = props => {
@@ -186,6 +277,12 @@ const Map = props => {
       }
     })()
   }, [])
+
+  const configLocation = ()=> {
+    setLocationRestaurant(location)
+    toastRef.current.show("Localización guardada correctamente")
+    setIsVisibleMap(false)
+  }
 
   return <Modal
     isVisible={isVisibleMap}
@@ -211,7 +308,7 @@ const Map = props => {
     <View style={styles.viewMapBtn}>
       <Button
         title="Guardar ubicación"
-        onPress={()=> console.log("ubicación guardada")}
+        onPress={configLocation}
         containerStyle={styles.viewMapBtnContainerSave}
         buttonStyle={styles.viewMapBtnSave}
       />
@@ -265,7 +362,7 @@ const styles = StyleSheet.create({
   },
   mapStyle: {
     width: "100%",
-    height: 400
+    height: "80%"
   },
   viewMapBtn: {
     flexDirection: "row",
@@ -283,6 +380,10 @@ const styles = StyleSheet.create({
   },
   viewMapBtnCancel: {
     backgroundColor: "#a60d0d"
+  },
+  addRestaurantBtn: {
+    backgroundColor: "#00a680",
+    margin: 20,
   }
 });
 
