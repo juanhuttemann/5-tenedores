@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { View, StyleSheet } from "react-native";
 import ActionButton from "react-native-action-button";
-import ListRestaurants from "./ListRestaurants";
+import ListRestaurants from "../../components/Restaurants/ListRestaurants";
 
 import { firebaseApp } from "../../utils/firebase";
 import firebase from "firebase/app";

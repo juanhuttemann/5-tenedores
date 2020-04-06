@@ -17,6 +17,7 @@ import Modal from '../Modal'
 import uuid from "uuid-random";
 import InputScrollView from "react-native-input-scroll-view";
 
+
 import { firebaseApp } from '../../utils/firebase'
 import firebase from 'firebase/app'
 import "firebase/firestore"

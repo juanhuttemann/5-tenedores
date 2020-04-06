@@ -6,6 +6,7 @@ import CarouselImages from "../../components/Carousel";
 import * as firebase from "firebase";
 
 const screenWidth = Dimensions.get("window").width;
+import ListReviews from "../../components/Restaurants/ListReviews";
 
 const Restaurant = (props) => {
   const { navigation } = props;
@@ -47,6 +48,10 @@ const Restaurant = (props) => {
         location={restaurant.location}
         name={restaurant.name}
         address={restaurant.address}
+      />
+      <ListReviews 
+        navigation={navigation}
+        idRestaurant={restaurant.id}
       />
     </ScrollView>
   );
