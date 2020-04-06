@@ -33,7 +33,7 @@ console.warn = message => {
 };
 
 const AddRestaurantForm = props => {
-  const { toastRef, navigation, setIsLoading } = props
+  const { toastRef, navigation, setIsLoading, setIsReloadRestaurant } = props
   const [restaurantName, setRestaurantName] = useState("")
   const [restaurantAddress, setRestaurantAddress] = useState("")
   const [restaurantDescription, setRestaurantDescription] = useState("")
@@ -67,6 +67,7 @@ const AddRestaurantForm = props => {
           })
           .then(() => {
             setIsLoading(false);
+            setIsReloadRestaurant(true)
             navigation.navigate("Restaurants");
           })
           .catch(error => {
